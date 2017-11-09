@@ -5,9 +5,10 @@ module Zebra
     class Label
       class InvalidPrintSpeedError     < StandardError; end
       class InvalidPrintDensityError   < StandardError; end
+      class InvalidPresenterError      < StandardError; end
       class PrintSpeedNotInformedError < StandardError; end
 
-      attr_writer :copies
+      attr_writer :copies, :presenter
       attr_reader :elements, :tempfile
       attr_accessor :width, :length, :gap, :print_speed, :print_density
 
@@ -29,6 +30,11 @@ module Zebra
       def print_density=(d)
         raise InvalidPrintDensityError unless (0..6).include?(d)
         @print_density = d
+      end
+
+      def presenter=(mode)
+        raise InvalidPresenterError unless [0,1,2].include?(mode)
+        @presenter=mode
       end
 
       def copies
@@ -57,6 +63,8 @@ module Zebra
         io << "^PR#{print_speed}"
         # Density (D command) "Carried over from EPL, does this exist in ZPL ????"
         # io << "D#{print_density}\n" if print_density
+        # Presenter  setting, 0 to eject, 1 to retract and 2 to use ^KV value
+        io << "^CP#{@presenter}" if @presenter
 
         # TEST ZPL (comment everything else out)...
         # io << "^XA^WD*:*.FNT*^XZ"
