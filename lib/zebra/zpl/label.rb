@@ -5,10 +5,9 @@ module Zebra
     class Label
       class InvalidPrintSpeedError     < StandardError; end
       class InvalidPrintDensityError   < StandardError; end
-      class InvalidPresenterError      < StandardError; end
       class PrintSpeedNotInformedError < StandardError; end
 
-      attr_writer :copies, :presenter
+      attr_writer :copies, :kiosk_mode
       attr_reader :elements, :tempfile
       attr_accessor :width, :length, :gap, :print_speed, :print_density
 
@@ -32,9 +31,12 @@ module Zebra
         @print_density = d
       end
 
-      def presenter=(mode)
-        raise InvalidPresenterError unless [0,1,2].include?(mode)
-        @presenter=mode
+      def kiosk_mode=(mode)
+        @kiosk_mode=mode
+      end
+
+      def kiosk_mode
+        @kiosk_mode || '0,9,0,6,0'
       end
 
       def copies
@@ -63,8 +65,8 @@ module Zebra
         io << "^PR#{print_speed}"
         # Density (D command) "Carried over from EPL, does this exist in ZPL ????"
         # io << "D#{print_density}\n" if print_density
-        # Presenter  setting, 0 to eject, 1 to retract and 2 to use ^KV value
-        io << "^CP#{@presenter}" if @presenter
+        # Kiosk values - see p155
+        io << "^KV#{kiosk_mode}"
 
         # TEST ZPL (comment everything else out)...
         # io << "^XA^WD*:*.FNT*^XZ"
@@ -78,6 +80,9 @@ module Zebra
         end
         # Specify how many copies to print
         io << "^PQ#{copies}"
+        # Kiosk mode recommended commands from ZPL docs
+        io << "^CN1" # cut now
+        io << "^PN0" # present now
         # End format
         io << "^XZ"
       end
